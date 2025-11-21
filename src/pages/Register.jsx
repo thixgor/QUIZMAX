@@ -9,35 +9,41 @@ const Register = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
     if (!name || !email || !password || !confirmPassword) {
       setError('Por favor, preencha todos os campos');
+      setLoading(false);
       return;
     }
 
     if (password !== confirmPassword) {
       setError('As senhas não coincidem');
+      setLoading(false);
       return;
     }
 
     if (password.length < 6) {
       setError('A senha deve ter pelo menos 6 caracteres');
+      setLoading(false);
       return;
     }
 
-    const result = register(name, email, password);
+    const result = await register(name, email, password);
 
     if (result.success) {
       navigate('/');
     } else {
       setError(result.error);
     }
+    setLoading(false);
   };
 
   return (
@@ -115,8 +121,8 @@ const Register = () => {
             />
           </div>
 
-          <button type="submit" className="btn-secondary w-full">
-            Cadastrar
+          <button type="submit" className="btn-secondary w-full" disabled={loading}>
+            {loading ? 'Cadastrando...' : 'Cadastrar'}
           </button>
         </form>
 

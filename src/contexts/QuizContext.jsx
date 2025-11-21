@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import { supabase } from '../lib/supabase';
 
 const QuizContext = createContext();
 
@@ -14,68 +15,164 @@ export const useQuiz = () => {
 export const QuizProvider = ({ children }) => {
   const { user } = useAuth();
   const [quizzes, setQuizzes] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadQuizzes();
-  }, []);
+    if (user) {
+      loadQuizzes();
+    } else {
+      loadPublicQuizzes();
+    }
+  }, [user]);
 
-  const loadQuizzes = () => {
-    const storedQuizzes = JSON.parse(localStorage.getItem('quizmax_quizzes') || '[]');
-    setQuizzes(storedQuizzes);
+  const loadQuizzes = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('quizzes')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setQuizzes(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar quizzes:', error);
+      setQuizzes([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const createQuiz = (quizData) => {
-    const newQuiz = {
-      id: Date.now().toString(),
-      ...quizData,
-      creatorId: user?.id || 'anonymous',
-      creatorName: user?.name || 'Anônimo',
-      createdAt: new Date().toISOString(),
-      views: 0,
-      attempts: 0,
-      questions: []
-    };
+  const loadPublicQuizzes = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('quizzes')
+        .select('*')
+        .eq('visibility', 'public')
+        .order('created_at', { ascending: false });
 
-    const updatedQuizzes = [...quizzes, newQuiz];
-    setQuizzes(updatedQuizzes);
-    localStorage.setItem('quizmax_quizzes', JSON.stringify(updatedQuizzes));
+      if (error) throw error;
 
-    return newQuiz;
+      setQuizzes(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar quizzes públicos:', error);
+      setQuizzes([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateQuiz = (quizId, updates) => {
-    const updatedQuizzes = quizzes.map(quiz =>
-      quiz.id === quizId ? { ...quiz, ...updates, updatedAt: new Date().toISOString() } : quiz
-    );
+  const createQuiz = async (quizData) => {
+    try {
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
 
-    setQuizzes(updatedQuizzes);
-    localStorage.setItem('quizmax_quizzes', JSON.stringify(updatedQuizzes));
+      const newQuiz = {
+        creator_id: user.id,
+        title: quizData.title,
+        description: quizData.description || null,
+        visibility: quizData.visibility || 'private',
+        show_answer_immediately: quizData.showAnswerImmediately || false,
+        questions: quizData.questions || [],
+        views: 0,
+        attempts: 0
+      };
+
+      const { data, error } = await supabase
+        .from('quizzes')
+        .insert([newQuiz])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setQuizzes([data, ...quizzes]);
+      return data;
+    } catch (error) {
+      console.error('Erro ao criar quiz:', error);
+      throw error;
+    }
   };
 
-  const deleteQuiz = (quizId) => {
-    const updatedQuizzes = quizzes.filter(quiz => quiz.id !== quizId);
-    setQuizzes(updatedQuizzes);
-    localStorage.setItem('quizmax_quizzes', JSON.stringify(updatedQuizzes));
+  const updateQuiz = async (quizId, updates) => {
+    try {
+      const updateData = {
+        title: updates.title,
+        description: updates.description,
+        visibility: updates.visibility,
+        show_answer_immediately: updates.showAnswerImmediately,
+        questions: updates.questions
+      };
+
+      const { data, error } = await supabase
+        .from('quizzes')
+        .update(updateData)
+        .eq('id', quizId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setQuizzes(quizzes.map(quiz => quiz.id === quizId ? data : quiz));
+    } catch (error) {
+      console.error('Erro ao atualizar quiz:', error);
+      throw error;
+    }
   };
 
-  const duplicateQuiz = (quizId) => {
-    const quizToDuplicate = quizzes.find(quiz => quiz.id === quizId);
-    if (!quizToDuplicate) return;
+  const deleteQuiz = async (quizId) => {
+    try {
+      const { error } = await supabase
+        .from('quizzes')
+        .delete()
+        .eq('id', quizId);
 
-    const duplicatedQuiz = {
-      ...quizToDuplicate,
-      id: Date.now().toString(),
-      title: `${quizToDuplicate.title} (Cópia)`,
-      createdAt: new Date().toISOString(),
-      views: 0,
-      attempts: 0
-    };
+      if (error) throw error;
 
-    const updatedQuizzes = [...quizzes, duplicatedQuiz];
-    setQuizzes(updatedQuizzes);
-    localStorage.setItem('quizmax_quizzes', JSON.stringify(updatedQuizzes));
+      setQuizzes(quizzes.filter(quiz => quiz.id !== quizId));
+    } catch (error) {
+      console.error('Erro ao deletar quiz:', error);
+      throw error;
+    }
+  };
 
-    return duplicatedQuiz;
+  const duplicateQuiz = async (quizId) => {
+    try {
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      const quizToDuplicate = quizzes.find(quiz => quiz.id === quizId);
+      if (!quizToDuplicate) throw new Error('Quiz não encontrado');
+
+      const duplicatedQuiz = {
+        creator_id: user.id,
+        title: `${quizToDuplicate.title} (Cópia)`,
+        description: quizToDuplicate.description,
+        visibility: quizToDuplicate.visibility,
+        show_answer_immediately: quizToDuplicate.show_answer_immediately,
+        questions: quizToDuplicate.questions,
+        views: 0,
+        attempts: 0
+      };
+
+      const { data, error } = await supabase
+        .from('quizzes')
+        .insert([duplicatedQuiz])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setQuizzes([data, ...quizzes]);
+      return data;
+    } catch (error) {
+      console.error('Erro ao duplicar quiz:', error);
+      throw error;
+    }
   };
 
   const getQuizById = (quizId) => {
@@ -83,31 +180,56 @@ export const QuizProvider = ({ children }) => {
   };
 
   const getUserQuizzes = (userId) => {
-    return quizzes.filter(quiz => quiz.creatorId === userId);
+    return quizzes.filter(quiz => quiz.creator_id === userId);
   };
 
   const getPublicQuizzes = () => {
     return quizzes.filter(quiz => quiz.visibility === 'public');
   };
 
-  const incrementViews = (quizId) => {
-    const updatedQuizzes = quizzes.map(quiz =>
-      quiz.id === quizId ? { ...quiz, views: (quiz.views || 0) + 1 } : quiz
-    );
-    setQuizzes(updatedQuizzes);
-    localStorage.setItem('quizmax_quizzes', JSON.stringify(updatedQuizzes));
+  const incrementViews = async (quizId) => {
+    try {
+      const quiz = quizzes.find(q => q.id === quizId);
+      if (!quiz) return;
+
+      const { error } = await supabase
+        .from('quizzes')
+        .update({ views: (quiz.views || 0) + 1 })
+        .eq('id', quizId);
+
+      if (error) throw error;
+
+      setQuizzes(quizzes.map(q =>
+        q.id === quizId ? { ...q, views: (q.views || 0) + 1 } : q
+      ));
+    } catch (error) {
+      console.error('Erro ao incrementar visualizações:', error);
+    }
   };
 
-  const incrementAttempts = (quizId) => {
-    const updatedQuizzes = quizzes.map(quiz =>
-      quiz.id === quizId ? { ...quiz, attempts: (quiz.attempts || 0) + 1 } : quiz
-    );
-    setQuizzes(updatedQuizzes);
-    localStorage.setItem('quizmax_quizzes', JSON.stringify(updatedQuizzes));
+  const incrementAttempts = async (quizId) => {
+    try {
+      const quiz = quizzes.find(q => q.id === quizId);
+      if (!quiz) return;
+
+      const { error } = await supabase
+        .from('quizzes')
+        .update({ attempts: (quiz.attempts || 0) + 1 })
+        .eq('id', quizId);
+
+      if (error) throw error;
+
+      setQuizzes(quizzes.map(q =>
+        q.id === quizId ? { ...q, attempts: (q.attempts || 0) + 1 } : q
+      ));
+    } catch (error) {
+      console.error('Erro ao incrementar tentativas:', error);
+    }
   };
 
   const value = {
     quizzes,
+    loading,
     createQuiz,
     updateQuiz,
     deleteQuiz,

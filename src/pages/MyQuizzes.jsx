@@ -40,25 +40,43 @@ const MyQuizzes = () => {
 
   const userQuizzes = getUserQuizzes(user.id);
 
-  const handleDelete = (quizId) => {
-    deleteQuiz(quizId);
-    setShowDeleteConfirm(null);
-  };
-
-  const handleDuplicate = (quizId) => {
-    const duplicated = duplicateQuiz(quizId);
-    if (duplicated) {
-      navigate(`/edit/${duplicated.id}`);
+  const handleDelete = async (quizId) => {
+    try {
+      await deleteQuiz(quizId);
+      setShowDeleteConfirm(null);
+    } catch (error) {
+      alert('Erro ao excluir quiz: ' + error.message);
     }
   };
 
-  const toggleVisibility = (quiz) => {
-    const visibilityOrder = ['public', 'unlisted', 'private'];
-    const currentIndex = visibilityOrder.indexOf(quiz.visibility);
-    const nextIndex = (currentIndex + 1) % visibilityOrder.length;
-    const newVisibility = visibilityOrder[nextIndex];
+  const handleDuplicate = async (quizId) => {
+    try {
+      const duplicated = await duplicateQuiz(quizId);
+      if (duplicated) {
+        navigate(`/edit/${duplicated.id}`);
+      }
+    } catch (error) {
+      alert('Erro ao duplicar quiz: ' + error.message);
+    }
+  };
 
-    updateQuiz(quiz.id, { visibility: newVisibility });
+  const toggleVisibility = async (quiz) => {
+    try {
+      const visibilityOrder = ['public', 'unlisted', 'private'];
+      const currentIndex = visibilityOrder.indexOf(quiz.visibility);
+      const nextIndex = (currentIndex + 1) % visibilityOrder.length;
+      const newVisibility = visibilityOrder[nextIndex];
+
+      await updateQuiz(quiz.id, {
+        title: quiz.title,
+        description: quiz.description,
+        visibility: newVisibility,
+        showAnswerImmediately: quiz.show_answer_immediately,
+        questions: quiz.questions
+      });
+    } catch (error) {
+      alert('Erro ao alterar visibilidade: ' + error.message);
+    }
   };
 
   const getVisibilityIcon = (visibility) => {

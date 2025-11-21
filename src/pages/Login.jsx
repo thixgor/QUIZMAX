@@ -7,25 +7,29 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
     if (!email || !password) {
       setError('Por favor, preencha todos os campos');
+      setLoading(false);
       return;
     }
 
-    const result = login(email, password);
+    const result = await login(email, password);
 
     if (result.success) {
       navigate('/');
     } else {
       setError(result.error);
     }
+    setLoading(false);
   };
 
   return (
@@ -75,8 +79,8 @@ const Login = () => {
             />
           </div>
 
-          <button type="submit" className="btn-primary w-full">
-            Entrar
+          <button type="submit" className="btn-primary w-full" disabled={loading}>
+            {loading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
 

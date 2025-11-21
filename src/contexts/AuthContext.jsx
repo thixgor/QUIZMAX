@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext();
 
@@ -15,61 +16,113 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Carregar usuário do localStorage ao iniciar
-    const storedUser = localStorage.getItem('quizmax_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    // Verificar sessão atual ao iniciar
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.user_metadata?.name || session.user.email.split('@')[0]
+        });
+      }
+      setLoading(false);
+    });
+
+    // Escutar mudanças na autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.user_metadata?.name || session.user.email.split('@')[0]
+        });
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = (email, password) => {
-    // Buscar usuários do localStorage
-    const users = JSON.parse(localStorage.getItem('quizmax_users') || '[]');
-    const foundUser = users.find(u => u.email === email && u.password === password);
+  const login = async (email, password) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
-    if (foundUser) {
-      const userWithoutPassword = { id: foundUser.id, name: foundUser.name, email: foundUser.email };
-      setUser(userWithoutPassword);
-      localStorage.setItem('quizmax_user', JSON.stringify(userWithoutPassword));
-      return { success: true };
+      if (error) {
+        return { success: false, error: error.message === 'Invalid login credentials'
+          ? 'Email ou senha incorretos'
+          : error.message
+        };
+      }
+
+      if (data.user) {
+        setUser({
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.user_metadata?.name || data.user.email.split('@')[0]
+        });
+        return { success: true };
+      }
+
+      return { success: false, error: 'Erro ao fazer login' };
+    } catch (error) {
+      return { success: false, error: error.message };
     }
-
-    return { success: false, error: 'Email ou senha incorretos' };
   };
 
-  const register = (name, email, password) => {
-    // Verificar se o email já está cadastrado
-    const users = JSON.parse(localStorage.getItem('quizmax_users') || '[]');
-    const existingUser = users.find(u => u.email === email);
+  const register = async (name, email, password) => {
+    try {
+      // Verificar se já existe usuário com este email
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('email', email)
+        .single();
 
-    if (existingUser) {
-      return { success: false, error: 'Email já cadastrado' };
+      if (existingUser) {
+        return { success: false, error: 'Email já cadastrado' };
+      }
+
+      // Criar conta no Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name
+          }
+        }
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      if (data.user) {
+        setUser({
+          id: data.user.id,
+          email: data.user.email,
+          name: name
+        });
+        return { success: true };
+      }
+
+      return { success: false, error: 'Erro ao criar conta' };
+    } catch (error) {
+      return { success: false, error: error.message };
     }
-
-    // Criar novo usuário
-    const newUser = {
-      id: Date.now().toString(),
-      name,
-      email,
-      password,
-      createdAt: new Date().toISOString()
-    };
-
-    users.push(newUser);
-    localStorage.setItem('quizmax_users', JSON.stringify(users));
-
-    // Fazer login automaticamente
-    const userWithoutPassword = { id: newUser.id, name: newUser.name, email: newUser.email };
-    setUser(userWithoutPassword);
-    localStorage.setItem('quizmax_user', JSON.stringify(userWithoutPassword));
-
-    return { success: true };
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('quizmax_user');
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    }
   };
 
   const value = {

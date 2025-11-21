@@ -18,6 +18,7 @@ const CreateQuiz = () => {
   const [showAnswerImmediately, setShowAnswerImmediately] = useState(false);
   const [questions, setQuestions] = useState([]);
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   if (!isAuthenticated) {
     return (
@@ -75,71 +76,86 @@ const CreateQuiz = () => {
     setQuestions(questions.filter(q => q.id !== questionId));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setError('');
+    setSaving(true);
 
-    if (!title.trim()) {
-      setError('⚠️ Por favor, adicione um título ao quiz antes de salvar');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
-    if (questions.length === 0) {
-      setError('⚠️ Por favor, adicione pelo menos uma pergunta ao quiz antes de salvar');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
-    // Validar perguntas
-    for (let i = 0; i < questions.length; i++) {
-      const q = questions[i];
-      if (!q.question.trim()) {
-        setError(`⚠️ Pergunta ${i + 1}: O texto da pergunta é obrigatório. Por favor, preencha o campo "Pergunta" antes de salvar.`);
+    try {
+      if (!title.trim()) {
+        setError('⚠️ Por favor, adicione um título ao quiz antes de salvar');
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        setSaving(false);
         return;
       }
 
-      if (q.type === 'multiple-choice') {
-        const hasEmptyOption = q.options.some(opt => !opt.trim());
-        if (hasEmptyOption) {
-          setError(`⚠️ Pergunta ${i + 1}: Todas as 4 alternativas devem ser preenchidas. Por favor, complete todas as opções.`);
+      if (questions.length === 0) {
+        setError('⚠️ Por favor, adicione pelo menos uma pergunta ao quiz antes de salvar');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setSaving(false);
+        return;
+      }
+
+      // Validar perguntas
+      for (let i = 0; i < questions.length; i++) {
+        const q = questions[i];
+        if (!q.question.trim()) {
+          setError(`⚠️ Pergunta ${i + 1}: O texto da pergunta é obrigatório. Por favor, preencha o campo "Pergunta" antes de salvar.`);
           window.scrollTo({ top: 0, behavior: 'smooth' });
+          setSaving(false);
+          return;
+        }
+
+        if (q.type === 'multiple-choice') {
+          const hasEmptyOption = q.options.some(opt => !opt.trim());
+          if (hasEmptyOption) {
+            setError(`⚠️ Pergunta ${i + 1}: Todas as 4 alternativas devem ser preenchidas. Por favor, complete todas as opções.`);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setSaving(false);
+            return;
+          }
+        }
+
+        if (q.type === 'image-marking' && !q.image) {
+          setError(`⚠️ Pergunta ${i + 1}: Uma imagem é obrigatória para questões de Identificação por Marcação. Por favor, faça upload de uma imagem.`);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          setSaving(false);
+          return;
+        }
+
+        if (q.type === 'image-marking' && q.answerType === 'objective') {
+          const hasEmptyOption = q.options.some(opt => !opt.trim());
+          if (hasEmptyOption) {
+            setError(`⚠️ Pergunta ${i + 1}: Todas as 4 alternativas devem ser preenchidas nas questões objetivas.`);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setSaving(false);
+            return;
+          }
+        }
+
+        if (q.type === 'image-marking' && q.answerType === 'discursive' && !q.discursiveAnswer?.trim()) {
+          setError(`⚠️ Pergunta ${i + 1}: A "Resposta Esperada" é obrigatória para questões discursivas.`);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          setSaving(false);
           return;
         }
       }
 
-      if (q.type === 'image-marking' && !q.image) {
-        setError(`⚠️ Pergunta ${i + 1}: Uma imagem é obrigatória para questões de Identificação por Marcação. Por favor, faça upload de uma imagem.`);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        return;
-      }
+      const quizData = {
+        title,
+        description,
+        visibility,
+        showAnswerImmediately,
+        questions
+      };
 
-      if (q.type === 'image-marking' && q.answerType === 'objective') {
-        const hasEmptyOption = q.options.some(opt => !opt.trim());
-        if (hasEmptyOption) {
-          setError(`⚠️ Pergunta ${i + 1}: Todas as 4 alternativas devem ser preenchidas nas questões objetivas.`);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          return;
-        }
-      }
-
-      if (q.type === 'image-marking' && q.answerType === 'discursive' && !q.discursiveAnswer?.trim()) {
-        setError(`⚠️ Pergunta ${i + 1}: A "Resposta Esperada" é obrigatória para questões discursivas.`);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        return;
-      }
+      const newQuiz = await createQuiz(quizData);
+      navigate(`/quiz/${newQuiz.id}`);
+    } catch (error) {
+      setError(`⚠️ Erro ao salvar quiz: ${error.message}`);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } finally {
+      setSaving(false);
     }
-
-    const quizData = {
-      title,
-      description,
-      visibility,
-      showAnswerImmediately,
-      questions
-    };
-
-    const newQuiz = createQuiz(quizData);
-    navigate(`/quiz/${newQuiz.id}`);
   };
 
   return (
@@ -330,10 +346,11 @@ const CreateQuiz = () => {
         </button>
         <button
           onClick={handleSave}
+          disabled={saving}
           className="btn-primary flex items-center space-x-2"
         >
           <Save size={20} />
-          <span>Salvar Quiz</span>
+          <span>{saving ? 'Salvando...' : 'Salvar Quiz'}</span>
         </button>
       </div>
     </div>
