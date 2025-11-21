@@ -11,7 +11,8 @@ import {
   Lock,
   Globe,
   EyeOff,
-  PlusCircle
+  PlusCircle,
+  Sparkles
 } from 'lucide-react';
 
 const MyQuizzes = () => {
@@ -113,12 +114,18 @@ const MyQuizzes = () => {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-6 flex-wrap gap-3">
         <h1 className="text-3xl font-bold text-brand-dark-blue">Meus Quizzes</h1>
-        <Link to="/create" className="btn-primary flex items-center space-x-2">
-          <PlusCircle size={20} />
-          <span>Criar Novo Quiz</span>
-        </Link>
+        <div className="flex gap-3 flex-wrap">
+          <Link to="/create" className="btn-primary flex items-center space-x-2">
+            <PlusCircle size={20} />
+            <span>Criar Manual</span>
+          </Link>
+          <Link to="/create-ai" className="bg-gradient-to-r from-purple-500 to-brand-light-blue hover:from-purple-600 hover:to-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-all flex items-center space-x-2 shadow-lg">
+            <Sparkles size={20} />
+            <span>Criar com IA</span>
+          </Link>
+        </div>
       </div>
 
       {userQuizzes.length === 0 ? (
@@ -129,10 +136,16 @@ const MyQuizzes = () => {
           <p className="text-gray-500 mb-6">
             Comece criando seu primeiro quiz agora!
           </p>
-          <Link to="/create" className="btn-primary inline-flex items-center space-x-2">
-            <PlusCircle size={20} />
-            <span>Criar Primeiro Quiz</span>
-          </Link>
+          <div className="flex gap-3 justify-center flex-wrap">
+            <Link to="/create" className="btn-primary inline-flex items-center space-x-2">
+              <PlusCircle size={20} />
+              <span>Criar Manual</span>
+            </Link>
+            <Link to="/create-ai" className="bg-gradient-to-r from-purple-500 to-brand-light-blue hover:from-purple-600 hover:to-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-all inline-flex items-center space-x-2 shadow-lg">
+              <Sparkles size={20} />
+              <span>Criar com IA</span>
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

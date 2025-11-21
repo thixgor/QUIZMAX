@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useQuiz } from '../contexts/QuizContext';
-import { PlusCircle, TrendingUp, Users, Target } from 'lucide-react';
+import { PlusCircle, TrendingUp, Users, Target, Sparkles } from 'lucide-react';
 
 const Home = () => {
   const { isAuthenticated, user } = useAuth();
@@ -20,13 +20,22 @@ const Home = () => {
             A plataforma definitiva para criar questionários envolventes em 2025.
           </p>
           {isAuthenticated ? (
-            <Link
-              to="/create"
-              className="inline-flex items-center space-x-2 bg-brand-orange hover:bg-orange-600 px-6 py-3 rounded-lg font-semibold text-lg transition-colors"
-            >
-              <PlusCircle size={24} />
-              <span>Criar Novo Quiz</span>
-            </Link>
+            <div className="flex flex-wrap gap-4">
+              <Link
+                to="/create"
+                className="inline-flex items-center space-x-2 bg-brand-orange hover:bg-orange-600 px-6 py-3 rounded-lg font-semibold text-lg transition-colors"
+              >
+                <PlusCircle size={24} />
+                <span>Criar Quiz Manual</span>
+              </Link>
+              <Link
+                to="/create-ai"
+                className="inline-flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-brand-light-blue hover:from-purple-600 hover:to-blue-600 px-6 py-3 rounded-lg font-semibold text-lg transition-all shadow-lg"
+              >
+                <Sparkles size={24} />
+                <span>Criar com IA</span>
+              </Link>
+            </div>
           ) : (
             <div className="flex space-x-4">
               <Link
