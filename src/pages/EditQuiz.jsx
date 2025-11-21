@@ -82,12 +82,14 @@ const EditQuiz = () => {
     setError('');
 
     if (!title.trim()) {
-      setError('Por favor, adicione um título ao quiz');
+      setError('⚠️ Por favor, adicione um título ao quiz antes de salvar');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
     if (questions.length === 0) {
-      setError('Por favor, adicione pelo menos uma pergunta');
+      setError('⚠️ Por favor, adicione pelo menos uma pergunta ao quiz antes de salvar');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -95,20 +97,38 @@ const EditQuiz = () => {
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
       if (!q.question.trim()) {
-        setError(`Pergunta ${i + 1}: O texto da pergunta é obrigatório`);
+        setError(`⚠️ Pergunta ${i + 1}: O texto da pergunta é obrigatório. Por favor, preencha o campo "Pergunta" antes de salvar.`);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
 
       if (q.type === 'multiple-choice') {
         const hasEmptyOption = q.options.some(opt => !opt.trim());
         if (hasEmptyOption) {
-          setError(`Pergunta ${i + 1}: Todas as alternativas devem ser preenchidas`);
+          setError(`⚠️ Pergunta ${i + 1}: Todas as 4 alternativas devem ser preenchidas. Por favor, complete todas as opções.`);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
           return;
         }
       }
 
       if (q.type === 'image-marking' && !q.image) {
-        setError(`Pergunta ${i + 1}: Uma imagem é obrigatória para este tipo de questão`);
+        setError(`⚠️ Pergunta ${i + 1}: Uma imagem é obrigatória para questões de Identificação por Marcação. Por favor, faça upload de uma imagem.`);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      if (q.type === 'image-marking' && q.answerType === 'objective') {
+        const hasEmptyOption = q.options.some(opt => !opt.trim());
+        if (hasEmptyOption) {
+          setError(`⚠️ Pergunta ${i + 1}: Todas as 4 alternativas devem ser preenchidas nas questões objetivas.`);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+      }
+
+      if (q.type === 'image-marking' && q.answerType === 'discursive' && !q.discursiveAnswer?.trim()) {
+        setError(`⚠️ Pergunta ${i + 1}: A "Resposta Esperada" é obrigatória para questões discursivas.`);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
     }
@@ -144,8 +164,14 @@ const EditQuiz = () => {
         <h1 className="text-3xl font-bold mb-6 text-brand-dark-blue">Editar Quiz</h1>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
-            {error}
+          <div className="bg-red-100 border-2 border-red-500 text-red-800 px-6 py-4 rounded-lg mb-6 shadow-lg animate-pulse">
+            <div className="flex items-start space-x-3">
+              <span className="text-3xl">⚠️</span>
+              <div className="flex-1">
+                <p className="font-bold text-lg mb-1">Erro na Validação</p>
+                <p>{error}</p>
+              </div>
+            </div>
           </div>
         )}
 

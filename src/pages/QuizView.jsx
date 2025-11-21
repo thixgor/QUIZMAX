@@ -70,10 +70,18 @@ const QuizView = () => {
       [questionId]: answer
     });
 
-    // Mostrar feedback imediato se a opção estiver ativada
-    if (quiz.showAnswerImmediately) {
+    // Mostrar feedback imediato apenas para perguntas NÃO discursivas
+    const currentQ = quiz.questions.find(q => q.id === questionId);
+    const isDiscursive = currentQ?.type === 'image-marking' && currentQ?.answerType === 'discursive';
+
+    if (quiz.showAnswerImmediately && !isDiscursive) {
       setShowFeedback(true);
     }
+  };
+
+  const handleCheckDiscursiveAnswer = () => {
+    // Mostrar feedback para pergunta discursiva
+    setShowFeedback(true);
   };
 
   const handleNext = () => {
@@ -635,11 +643,22 @@ const QuizView = () => {
             </label>
             <textarea
               value={answers[question.id] || ''}
-              onChange={(e) => handleAnswer(question.id, e.target.value)}
+              onChange={(e) => {
+                handleAnswer(question.id, e.target.value);
+                setShowFeedback(false); // Resetar feedback ao digitar
+              }}
               className="input-field"
               rows="4"
               placeholder="Digite sua resposta aqui..."
             />
+            {quiz.showAnswerImmediately && answers[question.id] && !showFeedback && (
+              <button
+                onClick={handleCheckDiscursiveAnswer}
+                className="mt-3 btn-primary"
+              >
+                Verificar Resposta
+              </button>
+            )}
           </div>
         )}
 
