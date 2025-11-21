@@ -75,18 +75,8 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, email, password) => {
     try {
-      // Verificar se já existe usuário com este email
-      const { data: existingUser } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('email', email)
-        .single();
-
-      if (existingUser) {
-        return { success: false, error: 'Email já cadastrado' };
-      }
-
       // Criar conta no Supabase Auth
+      // O Supabase Auth já verifica se o email existe
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -98,6 +88,10 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (error) {
+        // Traduzir erros comuns
+        if (error.message.includes('already registered')) {
+          return { success: false, error: 'Email já cadastrado' };
+        }
         return { success: false, error: error.message };
       }
 
