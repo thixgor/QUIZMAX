@@ -437,17 +437,35 @@ const ImageMarkingQuestion = ({ question, onChange }) => {
 
       {/* Discursive Answer */}
       {question.answerType === 'discursive' && (
-        <div>
-          <label className="block text-gray-700 font-semibold mb-2">
-            Resposta Esperada * (gabarito comentado)
-          </label>
-          <textarea
-            value={question.discursiveAnswer || ''}
-            onChange={(e) => onChange({ discursiveAnswer: e.target.value })}
-            className="input-field"
-            rows="3"
-            placeholder="Digite a resposta esperada para esta questão discursiva"
-          />
+        <div className="space-y-4">
+          <div>
+            <label className="block text-gray-700 font-semibold mb-2">
+              Resposta Esperada * (gabarito comentado)
+            </label>
+            <textarea
+              value={question.discursiveAnswer || ''}
+              onChange={(e) => onChange({ discursiveAnswer: e.target.value })}
+              className="input-field"
+              rows="3"
+              placeholder="Digite a resposta esperada para esta questão discursiva"
+            />
+          </div>
+
+          <div>
+            <label className="block text-gray-700 font-semibold mb-2">
+              Sinônimos/Respostas Alternativas Aceitas (opcional)
+            </label>
+            <textarea
+              value={question.acceptedAnswers || ''}
+              onChange={(e) => onChange({ acceptedAnswers: e.target.value })}
+              className="input-field"
+              rows="3"
+              placeholder="Digite outras respostas aceitas, separadas por vírgula (ex: célula, célula vegetal, unidade básica)"
+            />
+            <p className="text-sm text-gray-500 mt-1">
+              Separe cada sinônimo ou resposta alternativa com vírgula. A correção será automática se a resposta do aluno corresponder exatamente a qualquer uma das opções.
+            </p>
+          </div>
         </div>
       )}
 

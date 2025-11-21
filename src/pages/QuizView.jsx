@@ -12,6 +12,7 @@ const QuizView = () => {
   const [answers, setAnswers] = useState({});
   const [showResults, setShowResults] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   useEffect(() => {
     const foundQuiz = getQuizById(id);
@@ -68,54 +69,106 @@ const QuizView = () => {
       ...answers,
       [questionId]: answer
     });
+
+    // Mostrar feedback imediato se a opção estiver ativada
+    if (quiz.showAnswerImmediately) {
+      setShowFeedback(true);
+    }
   };
 
   const handleNext = () => {
     if (currentQuestion < quiz.questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
+      setShowFeedback(false); // Resetar feedback ao avançar
     }
   };
 
   const handlePrevious = () => {
     if (currentQuestion > 0) {
       setCurrentQuestion(currentQuestion - 1);
+      setShowFeedback(false); // Resetar feedback ao voltar
     }
+  };
+
+  const isCurrentAnswerCorrect = () => {
+    const question = quiz.questions[currentQuestion];
+    const userAnswer = answers[question.id];
+
+    if (question.type === 'multiple-choice') {
+      return userAnswer === question.correctAnswer;
+    } else if (question.type === 'true-false') {
+      return userAnswer === question.correctAnswer;
+    } else if (question.type === 'image-marking') {
+      if (question.answerType === 'objective') {
+        return userAnswer === question.correctAnswer;
+      } else if (question.answerType === 'discursive') {
+        return checkDiscursiveAnswer(userAnswer, question);
+      }
+    }
+    return false;
   };
 
   const handleSubmit = () => {
     setShowResults(true);
   };
 
+  const checkDiscursiveAnswer = (userAnswer, question) => {
+    if (!userAnswer || typeof userAnswer !== 'string') return false;
+
+    const normalizeText = (text) => text.toLowerCase().trim();
+    const normalizedUserAnswer = normalizeText(userAnswer);
+
+    // Verificar resposta principal
+    if (normalizedUserAnswer === normalizeText(question.discursiveAnswer || '')) {
+      return true;
+    }
+
+    // Verificar sinônimos/respostas alternativas
+    if (question.acceptedAnswers) {
+      const acceptedAnswers = question.acceptedAnswers
+        .split(',')
+        .map(ans => normalizeText(ans))
+        .filter(ans => ans.length > 0);
+
+      return acceptedAnswers.some(accepted => normalizedUserAnswer === accepted);
+    }
+
+    return false;
+  };
+
   const calculateScore = () => {
     let correct = 0;
+    let total = 0;
+
     quiz.questions.forEach((question) => {
       const userAnswer = answers[question.id];
+      total++; // Contar todas as perguntas
 
-      if (question.type === 'multiple-choice' || question.type === 'image-marking') {
-        if (question.answerType === 'objective' || question.type === 'multiple-choice') {
-          if (userAnswer === question.correctAnswer) {
-            correct++;
-          }
+      if (question.type === 'multiple-choice') {
+        if (userAnswer === question.correctAnswer) {
+          correct++;
         }
       } else if (question.type === 'true-false') {
         if (userAnswer === question.correctAnswer) {
           correct++;
+        }
+      } else if (question.type === 'image-marking') {
+        if (question.answerType === 'objective') {
+          if (userAnswer === question.correctAnswer) {
+            correct++;
+          }
+        } else if (question.answerType === 'discursive') {
+          if (checkDiscursiveAnswer(userAnswer, question)) {
+            correct++;
+          }
         }
       }
     });
 
     return {
       correct,
-      total: quiz.questions.filter(
-        q => q.type !== 'image-marking' || q.answerType === 'objective'
-      ).length,
-      percentage: Math.round(
-        (correct /
-          quiz.questions.filter(
-            q => q.type !== 'image-marking' || q.answerType === 'objective'
-          ).length) *
-          100
-      )
+      total,
+      percentage: total > 0 ? Math.round((correct / total) * 100) : 0
     };
   };
 
@@ -209,13 +262,19 @@ const QuizView = () => {
           <div className="space-y-6">
             {quiz.questions.map((question, index) => {
               const userAnswer = answers[question.id];
-              const isCorrect =
-                question.type === 'true-false'
-                  ? userAnswer === question.correctAnswer
-                  : question.type === 'multiple-choice' ||
-                    (question.type === 'image-marking' && question.answerType === 'objective')
-                  ? userAnswer === question.correctAnswer
-                  : null;
+              let isCorrect = null;
+
+              if (question.type === 'true-false') {
+                isCorrect = userAnswer === question.correctAnswer;
+              } else if (question.type === 'multiple-choice') {
+                isCorrect = userAnswer === question.correctAnswer;
+              } else if (question.type === 'image-marking') {
+                if (question.answerType === 'objective') {
+                  isCorrect = userAnswer === question.correctAnswer;
+                } else if (question.answerType === 'discursive') {
+                  isCorrect = checkDiscursiveAnswer(userAnswer, question);
+                }
+              }
 
               return (
                 <div key={question.id} className="border border-gray-200 rounded-lg p-4">
@@ -337,12 +396,19 @@ const QuizView = () => {
 
                       {question.type === 'image-marking' && question.answerType === 'discursive' && (
                         <div>
-                          <p className="mb-2">
-                            Sua resposta: <em>{userAnswer || 'Não respondida'}</em>
+                          <p className={`mb-2 ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                            <strong>Sua resposta:</strong> <em>{userAnswer || 'Não respondida'}</em>
+                            {isCorrect && ' ✓'}
+                            {!isCorrect && userAnswer && ' ✗'}
                           </p>
-                          <p className="bg-green-50 p-3 rounded border border-green-200">
-                            <strong>Resposta esperada:</strong> {question.discursiveAnswer}
-                          </p>
+                          <div className="bg-green-50 p-3 rounded border border-green-200">
+                            <p><strong>Resposta esperada:</strong> {question.discursiveAnswer}</p>
+                            {question.acceptedAnswers && (
+                              <p className="text-sm mt-2">
+                                <strong>Também aceito:</strong> {question.acceptedAnswers}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       )}
 
@@ -574,6 +640,63 @@ const QuizView = () => {
               rows="4"
               placeholder="Digite sua resposta aqui..."
             />
+          </div>
+        )}
+
+        {/* Feedback Imediato */}
+        {showFeedback && answers[question.id] !== undefined && (
+          <div className={`mt-6 p-4 rounded-lg border-2 ${
+            isCurrentAnswerCorrect()
+              ? 'bg-green-50 border-green-500'
+              : 'bg-red-50 border-red-500'
+          }`}>
+            <div className="flex items-center space-x-2 mb-2">
+              {isCurrentAnswerCorrect() ? (
+                <>
+                  <CheckCircle className="text-green-600" size={24} />
+                  <span className="font-bold text-green-600 text-lg">Resposta Correta!</span>
+                </>
+              ) : (
+                <>
+                  <XCircle className="text-red-600" size={24} />
+                  <span className="font-bold text-red-600 text-lg">Resposta Incorreta</span>
+                </>
+              )}
+            </div>
+
+            {!isCurrentAnswerCorrect() && (
+              <div className="mt-3">
+                {question.type === 'true-false' && (
+                  <p className="text-gray-700">
+                    <strong>Resposta correta:</strong> {question.correctAnswer ? 'Verdadeiro' : 'Falso'}
+                  </p>
+                )}
+                {(question.type === 'multiple-choice' ||
+                  (question.type === 'image-marking' && question.answerType === 'objective')) && (
+                  <p className="text-gray-700">
+                    <strong>Resposta correta:</strong> {String.fromCharCode(65 + question.correctAnswer)}. {question.options[question.correctAnswer]}
+                  </p>
+                )}
+                {question.type === 'image-marking' && question.answerType === 'discursive' && (
+                  <div className="text-gray-700">
+                    <p><strong>Resposta esperada:</strong> {question.discursiveAnswer}</p>
+                    {question.acceptedAnswers && (
+                      <p className="text-sm mt-1">
+                        <strong>Também aceito:</strong> {question.acceptedAnswers}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {question.explanation && (
+              <div className="mt-3 pt-3 border-t border-gray-300">
+                <p className="text-gray-700">
+                  <strong>Explicação:</strong> {question.explanation}
+                </p>
+              </div>
+            )}
           </div>
         )}
 

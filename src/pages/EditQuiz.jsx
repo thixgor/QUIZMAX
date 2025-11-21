@@ -17,6 +17,7 @@ const EditQuiz = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [visibility, setVisibility] = useState('public');
+  const [showAnswerImmediately, setShowAnswerImmediately] = useState(false);
   const [questions, setQuestions] = useState([]);
   const [error, setError] = useState('');
 
@@ -32,6 +33,7 @@ const EditQuiz = () => {
       setTitle(foundQuiz.title);
       setDescription(foundQuiz.description || '');
       setVisibility(foundQuiz.visibility);
+      setShowAnswerImmediately(foundQuiz.showAnswerImmediately || false);
       setQuestions(foundQuiz.questions || []);
     } else {
       navigate('/');
@@ -115,6 +117,7 @@ const EditQuiz = () => {
       title,
       description,
       visibility,
+      showAnswerImmediately,
       questions
     });
 
@@ -186,6 +189,39 @@ const EditQuiz = () => {
               <option value="unlisted">Não listado</option>
               <option value="private">Privado</option>
             </select>
+          </div>
+
+          <div>
+            <label className="block text-gray-700 font-semibold mb-2">
+              Exibição do Gabarito
+            </label>
+            <div className="space-y-2">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="answerDisplay"
+                  checked={!showAnswerImmediately}
+                  onChange={() => setShowAnswerImmediately(false)}
+                  className="w-4 h-4 text-brand-light-blue"
+                />
+                <span>Mostrar gabarito apenas no final do quiz</span>
+              </label>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="answerDisplay"
+                  checked={showAnswerImmediately}
+                  onChange={() => setShowAnswerImmediately(true)}
+                  className="w-4 h-4 text-brand-light-blue"
+                />
+                <span>Mostrar gabarito logo após responder cada pergunta</span>
+              </label>
+            </div>
+            <p className="text-sm text-gray-500 mt-2">
+              {showAnswerImmediately
+                ? 'O aluno verá se acertou ou errou logo após responder cada pergunta.'
+                : 'O aluno verá todos os resultados apenas ao finalizar o quiz.'}
+            </p>
           </div>
         </div>
       </div>
