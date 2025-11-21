@@ -8,6 +8,10 @@
   targetPort = 5173
   autoLaunch = false
 
+[context.dev.environment]
+  VITE_SUPABASE_URL = "https://nrotkqfpnlpmrluabljd.supabase.co"
+  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5yb3RrcWZwbmxwbXJsdWFibGpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3NTM3MDYsImV4cCI6MjA3OTMyOTcwNn0.rC_rHYILHeFNx2fzGm9kx0Y3m1ZcK3mtDlrbAzS90dw"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
