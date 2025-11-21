@@ -17,10 +17,11 @@ const Navbar = () => {
         <div className="flex justify-between items-center py-4">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
-              {/* Placeholder para logo - substitua quando tiver o SVG */}
-              <span className="text-brand-dark-blue font-bold text-xl">QM</span>
-            </div>
+            <img
+              src="/logo.svg"
+              alt="QuizMAX Logo"
+              className="h-14 w-auto"
+            />
             <span className="text-2xl font-bold">QuizMAX</span>
           </Link>
 
