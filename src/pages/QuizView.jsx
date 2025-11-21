@@ -233,11 +233,68 @@ const QuizView = () => {
                       </h3>
 
                       {question.image && (
-                        <img
-                          src={question.image}
-                          alt="Imagem da questão"
-                          className="max-w-md rounded-lg mb-3"
-                        />
+                        <div className="relative inline-block mb-3">
+                          <img
+                            src={question.image}
+                            alt="Imagem da questão"
+                            className="max-w-md rounded-lg"
+                          />
+                          {/* Renderizar marcações se existirem */}
+                          {question.markers && question.markers.length > 0 && (
+                            <svg
+                              className="absolute top-0 left-0 w-full h-full pointer-events-none"
+                              style={{ zIndex: 10 }}
+                            >
+                              {question.markers.map((marker) => (
+                                <g key={marker.id}>
+                                  {marker.type === 'arrow' && (
+                                    <>
+                                      <defs>
+                                        <marker
+                                          id={`arrowhead-result-${marker.id}`}
+                                          markerWidth="10"
+                                          markerHeight="10"
+                                          refX="9"
+                                          refY="3"
+                                          orient="auto"
+                                        >
+                                          <polygon points="0 0, 10 3, 0 6" fill={marker.color || '#F18D2F'} />
+                                        </marker>
+                                      </defs>
+                                      <line
+                                        x1={marker.x}
+                                        y1={marker.y}
+                                        x2={marker.endX}
+                                        y2={marker.endY}
+                                        stroke={marker.color || '#F18D2F'}
+                                        strokeWidth="3"
+                                        markerEnd={`url(#arrowhead-result-${marker.id})`}
+                                      />
+                                    </>
+                                  )}
+                                  {marker.type === 'circle' && (
+                                    <circle
+                                      cx={marker.x}
+                                      cy={marker.y}
+                                      r={marker.radius}
+                                      stroke={marker.color || '#F18D2F'}
+                                      strokeWidth="3"
+                                      fill="none"
+                                    />
+                                  )}
+                                  {marker.type === 'point' && (
+                                    <circle
+                                      cx={marker.x}
+                                      cy={marker.y}
+                                      r="8"
+                                      fill={marker.color || '#F18D2F'}
+                                    />
+                                  )}
+                                </g>
+                              ))}
+                            </svg>
+                          )}
+                        </div>
                       )}
 
                       {question.type === 'true-false' && (
@@ -368,12 +425,67 @@ const QuizView = () => {
         <h2 className="text-2xl font-bold mb-4 text-brand-dark-blue">{question.question}</h2>
 
         {question.image && (
-          <div className="mb-4">
+          <div className="mb-4 relative inline-block">
             <img
               src={question.image}
               alt="Imagem da questão"
               className="max-w-full rounded-lg"
             />
+            {/* Renderizar marcações se existirem */}
+            {question.markers && question.markers.length > 0 && (
+              <svg
+                className="absolute top-0 left-0 w-full h-full pointer-events-none"
+                style={{ zIndex: 10 }}
+              >
+                {question.markers.map((marker) => (
+                  <g key={marker.id}>
+                    {marker.type === 'arrow' && (
+                      <>
+                        <defs>
+                          <marker
+                            id={`arrowhead-${marker.id}`}
+                            markerWidth="10"
+                            markerHeight="10"
+                            refX="9"
+                            refY="3"
+                            orient="auto"
+                          >
+                            <polygon points="0 0, 10 3, 0 6" fill={marker.color || '#F18D2F'} />
+                          </marker>
+                        </defs>
+                        <line
+                          x1={marker.x}
+                          y1={marker.y}
+                          x2={marker.endX}
+                          y2={marker.endY}
+                          stroke={marker.color || '#F18D2F'}
+                          strokeWidth="3"
+                          markerEnd={`url(#arrowhead-${marker.id})`}
+                        />
+                      </>
+                    )}
+                    {marker.type === 'circle' && (
+                      <circle
+                        cx={marker.x}
+                        cy={marker.y}
+                        r={marker.radius}
+                        stroke={marker.color || '#F18D2F'}
+                        strokeWidth="3"
+                        fill="none"
+                      />
+                    )}
+                    {marker.type === 'point' && (
+                      <circle
+                        cx={marker.x}
+                        cy={marker.y}
+                        r="8"
+                        fill={marker.color || '#F18D2F'}
+                      />
+                    )}
+                  </g>
+                ))}
+              </svg>
+            )}
           </div>
         )}
 

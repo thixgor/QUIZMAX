@@ -1,10 +1,83 @@
-import { useState, useRef } from 'react';
-import { Upload, X, Circle, ArrowRight, Pointer } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Upload, X, Circle, ArrowRight, Pointer, Palette } from 'lucide-react';
 
 const ImageMarkingQuestion = ({ question, onChange }) => {
   const [imagePreview, setImagePreview] = useState(question.image);
   const [currentTool, setCurrentTool] = useState('arrow'); // arrow, circle, point
+  const [currentColor, setCurrentColor] = useState('#F18D2F'); // cor padrão laranja
+  const [showColorPicker, setShowColorPicker] = useState(false);
   const canvasRef = useRef(null);
+  const uploadAreaRef = useRef(null);
+
+  // Prevenir arrastar imagem quando ferramenta está selecionada
+  useEffect(() => {
+    if (canvasRef.current) {
+      const img = canvasRef.current.querySelector('img');
+      if (img) {
+        img.style.userSelect = 'none';
+        img.style.pointerEvents = 'none';
+        img.ondragstart = () => false;
+      }
+    }
+  }, [imagePreview]);
+
+  // Handler para colar imagem
+  useEffect(() => {
+    const handlePaste = (e) => {
+      if (!uploadAreaRef.current) return;
+
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const blob = items[i].getAsFile();
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setImagePreview(reader.result);
+            onChange({ image: reader.result });
+          };
+          reader.readAsDataURL(blob);
+          e.preventDefault();
+          break;
+        }
+      }
+    };
+
+    const uploadArea = uploadAreaRef.current;
+    if (uploadArea) {
+      uploadArea.addEventListener('paste', handlePaste);
+      // Tornar a div focável para receber eventos de teclado
+      uploadArea.setAttribute('tabindex', '0');
+    }
+
+    return () => {
+      if (uploadArea) {
+        uploadArea.removeEventListener('paste', handlePaste);
+      }
+    };
+  }, [onChange]);
+
+  // Handler para arrastar e soltar
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const files = e.dataTransfer?.files;
+    if (files && files[0] && files[0].type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+        onChange({ image: reader.result });
+      };
+      reader.readAsDataURL(files[0]);
+    }
+  };
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -35,6 +108,7 @@ const ImageMarkingQuestion = ({ question, onChange }) => {
       type: currentTool,
       x,
       y,
+      color: currentColor,
       ...(currentTool === 'circle' && { radius: 30 }),
       ...(currentTool === 'arrow' && { endX: x + 50, endY: y })
     };
@@ -53,6 +127,19 @@ const ImageMarkingQuestion = ({ question, onChange }) => {
     newOptions[index] = value;
     onChange({ options: newOptions });
   };
+
+  // Cores predefinidas
+  const presetColors = [
+    '#F18D2F', // Laranja (padrão)
+    '#FF0000', // Vermelho
+    '#00FF00', // Verde
+    '#0000FF', // Azul
+    '#FFFF00', // Amarelo
+    '#FF00FF', // Magenta
+    '#00FFFF', // Ciano
+    '#FFFFFF', // Branco
+    '#000000', // Preto
+  ];
 
   return (
     <div className="space-y-4">
@@ -80,10 +167,15 @@ const ImageMarkingQuestion = ({ question, onChange }) => {
               <div
                 ref={canvasRef}
                 onClick={handleCanvasClick}
-                className="relative cursor-crosshair"
+                className="relative cursor-crosshair select-none"
                 style={{ maxWidth: '600px' }}
               >
-                <img src={imagePreview} alt="Preview" className="w-full rounded-lg" />
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="w-full rounded-lg select-none pointer-events-none"
+                  draggable="false"
+                />
 
                 {/* Render markers */}
                 <svg
@@ -103,7 +195,7 @@ const ImageMarkingQuestion = ({ question, onChange }) => {
                               refY="3"
                               orient="auto"
                             >
-                              <polygon points="0 0, 10 3, 0 6" fill="#F18D2F" />
+                              <polygon points="0 0, 10 3, 0 6" fill={marker.color || '#F18D2F'} />
                             </marker>
                           </defs>
                           <line
@@ -111,7 +203,7 @@ const ImageMarkingQuestion = ({ question, onChange }) => {
                             y1={marker.y}
                             x2={marker.endX}
                             y2={marker.endY}
-                            stroke="#F18D2F"
+                            stroke={marker.color || '#F18D2F'}
                             strokeWidth="3"
                             markerEnd={`url(#arrowhead-${marker.id})`}
                           />
@@ -122,7 +214,7 @@ const ImageMarkingQuestion = ({ question, onChange }) => {
                           cx={marker.x}
                           cy={marker.y}
                           r={marker.radius}
-                          stroke="#F18D2F"
+                          stroke={marker.color || '#F18D2F'}
                           strokeWidth="3"
                           fill="none"
                         />
@@ -132,7 +224,7 @@ const ImageMarkingQuestion = ({ question, onChange }) => {
                           cx={marker.x}
                           cy={marker.y}
                           r="8"
-                          fill="#F18D2F"
+                          fill={marker.color || '#F18D2F'}
                         />
                       )}
                     </g>
@@ -140,6 +232,7 @@ const ImageMarkingQuestion = ({ question, onChange }) => {
                 </svg>
               </div>
               <button
+                type="button"
                 onClick={removeImage}
                 className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 z-20"
               >
@@ -148,7 +241,7 @@ const ImageMarkingQuestion = ({ question, onChange }) => {
             </div>
 
             {/* Marking Tools */}
-            <div className="flex space-x-2 items-center">
+            <div className="flex flex-wrap gap-2 items-center">
               <span className="text-sm font-semibold text-gray-700">Ferramentas:</span>
               <button
                 type="button"
@@ -183,6 +276,62 @@ const ImageMarkingQuestion = ({ question, onChange }) => {
               >
                 <Pointer size={20} />
               </button>
+
+              {/* Color Picker */}
+              <div className="relative ml-2">
+                <button
+                  type="button"
+                  onClick={() => setShowColorPicker(!showColorPicker)}
+                  className="flex items-center space-x-2 p-2 rounded bg-gray-200 hover:bg-gray-300"
+                >
+                  <Palette size={20} />
+                  <div
+                    className="w-6 h-6 rounded border-2 border-gray-400"
+                    style={{ backgroundColor: currentColor }}
+                  />
+                </button>
+
+                {showColorPicker && (
+                  <div className="absolute top-full mt-2 left-0 bg-white border-2 border-gray-300 rounded-lg p-3 shadow-lg z-30">
+                    <div className="mb-2">
+                      <label className="block text-sm font-semibold mb-1">Cores Predefinidas:</label>
+                      <div className="grid grid-cols-5 gap-2">
+                        {presetColors.map((color) => (
+                          <button
+                            key={color}
+                            type="button"
+                            onClick={() => {
+                              setCurrentColor(color);
+                              setShowColorPicker(false);
+                            }}
+                            className={`w-8 h-8 rounded border-2 ${
+                              currentColor === color ? 'border-brand-dark-blue' : 'border-gray-300'
+                            }`}
+                            style={{ backgroundColor: color }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold mb-1">Personalizada:</label>
+                      <input
+                        type="color"
+                        value={currentColor}
+                        onChange={(e) => setCurrentColor(e.target.value)}
+                        className="w-full h-10 rounded cursor-pointer"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowColorPicker(false)}
+                      className="mt-2 w-full btn-outline text-sm py-1"
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {question.markers?.length > 0 && (
                 <button
                   type="button"
@@ -198,19 +347,28 @@ const ImageMarkingQuestion = ({ question, onChange }) => {
             </p>
           </div>
         ) : (
-          <label className="flex items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-brand-light-blue">
-            <div className="text-center">
-              <Upload className="mx-auto text-gray-400 mb-2" size={32} />
-              <span className="text-gray-500">Clique para fazer upload da imagem</span>
-              <p className="text-xs text-red-500 mt-2">* Obrigatório para este tipo de questão</p>
-            </div>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              className="hidden"
-            />
-          </label>
+          <div
+            ref={uploadAreaRef}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            className="relative"
+          >
+            <label className="flex items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-brand-light-blue transition-colors">
+              <div className="text-center">
+                <Upload className="mx-auto text-gray-400 mb-2" size={32} />
+                <span className="text-gray-500">Clique para fazer upload da imagem</span>
+                <p className="text-sm text-gray-400 mt-2">ou arraste e solte aqui</p>
+                <p className="text-sm text-gray-400 mt-1">ou clique aqui e pressione Ctrl+V</p>
+                <p className="text-xs text-red-500 mt-2">* Obrigatório para este tipo de questão</p>
+              </div>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+            </label>
+          </div>
         )}
       </div>
 
