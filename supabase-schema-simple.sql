@@ -1,5 +1,5 @@
 -- ========================================
--- QUIZMAX - Supabase Database Schema
+-- QUIZMAX - Supabase Database Schema (Simplified)
 -- ========================================
 
 -- Enable UUID extension
@@ -19,18 +19,18 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 -- Enable Row Level Security
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- Profiles policies
+-- Profiles policies (simplified)
 CREATE POLICY "Public profiles are viewable by everyone"
   ON public.profiles FOR SELECT
   USING (true);
 
 CREATE POLICY "Users can insert their own profile"
   ON public.profiles FOR INSERT
-  WITH CHECK (id = auth.uid());
+  WITH CHECK (auth.uid() = id);
 
 CREATE POLICY "Users can update their own profile"
   ON public.profiles FOR UPDATE
-  USING (id = auth.uid());
+  USING (auth.uid() = id);
 
 -- ========================================
 -- QUIZZES TABLE
@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS public.quizzes (
 -- Enable Row Level Security
 ALTER TABLE public.quizzes ENABLE ROW LEVEL SECURITY;
 
--- Quizzes policies
+-- Quizzes policies (simplified)
 CREATE POLICY "Anyone can view public quizzes"
   ON public.quizzes FOR SELECT
   USING (visibility = 'public');
@@ -94,7 +94,7 @@ CREATE TABLE IF NOT EXISTS public.quiz_attempts (
 -- Enable Row Level Security
 ALTER TABLE public.quiz_attempts ENABLE ROW LEVEL SECURITY;
 
--- Quiz attempts policies
+-- Quiz attempts policies (simplified)
 CREATE POLICY "Users can view their own attempts"
   ON public.quiz_attempts FOR SELECT
   USING (user_id = auth.uid());
@@ -161,18 +161,11 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('quiz-images', 'quiz-images', true)
 ON CONFLICT (id) DO NOTHING;
 
--- Storage policies for quiz images
--- Note: As políticas de storage podem variar dependendo da versão do Supabase
--- Se houver erros com as políticas abaixo, você pode configurá-las manualmente
--- no dashboard do Supabase em Storage > Policies
-
-CREATE POLICY "Anyone can view quiz images"
+-- Storage policies (minimal - configure more in dashboard if needed)
+CREATE POLICY "Public access to quiz images"
   ON storage.objects FOR SELECT
   USING (bucket_id = 'quiz-images');
 
-CREATE POLICY "Authenticated users can upload quiz images"
+CREATE POLICY "Authenticated users can upload"
   ON storage.objects FOR INSERT
   WITH CHECK (bucket_id = 'quiz-images' AND auth.role() = 'authenticated');
-
--- As políticas de UPDATE e DELETE podem ser configuradas manualmente no dashboard
--- se necessário, usando a UI do Supabase Storage Policies
