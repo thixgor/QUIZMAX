@@ -170,6 +170,10 @@ VALUES ('quiz-images', 'quiz-images', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Storage policies for quiz images
+-- Note: As políticas de storage podem variar dependendo da versão do Supabase
+-- Se houver erros com as políticas abaixo, você pode configurá-las manualmente
+-- no dashboard do Supabase em Storage > Policies
+
 CREATE POLICY "Anyone can view quiz images"
   ON storage.objects FOR SELECT
   USING (bucket_id = 'quiz-images');
@@ -178,10 +182,5 @@ CREATE POLICY "Authenticated users can upload quiz images"
   ON storage.objects FOR INSERT
   WITH CHECK (bucket_id = 'quiz-images' AND auth.role() = 'authenticated');
 
-CREATE POLICY "Users can update their own quiz images"
-  ON storage.objects FOR UPDATE
-  USING (bucket_id = 'quiz-images' AND auth.uid()::text = owner);
-
-CREATE POLICY "Users can delete their own quiz images"
-  ON storage.objects FOR DELETE
-  USING (bucket_id = 'quiz-images' AND auth.uid()::text = owner);
+-- As políticas de UPDATE e DELETE podem ser configuradas manualmente no dashboard
+-- se necessário, usando a UI do Supabase Storage Policies
