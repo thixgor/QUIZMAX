@@ -4,6 +4,12 @@ Este documento contém as instruções para configurar o banco de dados Supabase
 
 ## Passo 1: Executar o Schema SQL
 
+Há dois arquivos SQL disponíveis:
+- **`supabase-schema.sql`** - Schema completo (recomendado)
+- **`supabase-schema-simple.sql`** - Schema simplificado (use se o completo der erro)
+
+### Executando o SQL:
+
 1. Acesse o Supabase Dashboard: https://app.supabase.com
 2. Selecione seu projeto QuizMAX
 3. No menu lateral, clique em **SQL Editor**
@@ -11,6 +17,8 @@ Este documento contém as instruções para configurar o banco de dados Supabase
 5. Copie todo o conteúdo do arquivo `supabase-schema.sql`
 6. Cole no editor SQL
 7. Clique em **Run** (ou pressione Ctrl+Enter)
+
+**Se der erro de tipo UUID/text:** Tente usar o arquivo `supabase-schema-simple.sql` em vez disso.
 
 O script irá criar:
 - Tabela `profiles` (perfis de usuário)
