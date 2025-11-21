@@ -39,6 +39,25 @@ const QuizView = () => {
     );
   }
 
+  // Verificar se o quiz tem perguntas
+  if (!quiz.questions || quiz.questions.length === 0) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="card text-center">
+          <h2 className="text-2xl font-bold mb-4 text-brand-dark-blue">
+            Quiz sem perguntas
+          </h2>
+          <p className="text-gray-600 mb-4">
+            Este quiz ainda não possui perguntas cadastradas.
+          </p>
+          <Link to="/" className="btn-primary">
+            Voltar para Início
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const handleStart = () => {
     setHasStarted(true);
     incrementAttempts(id);
@@ -305,6 +324,31 @@ const QuizView = () => {
 
   // Quiz Questions
   const question = quiz.questions[currentQuestion];
+
+  // Verificação de segurança adicional
+  if (!question) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="card text-center">
+          <h2 className="text-2xl font-bold mb-4 text-brand-dark-blue">
+            Erro ao carregar pergunta
+          </h2>
+          <p className="text-gray-600 mb-4">
+            Ocorreu um erro ao carregar esta pergunta.
+          </p>
+          <button
+            onClick={() => {
+              setHasStarted(false);
+              setCurrentQuestion(0);
+            }}
+            className="btn-primary"
+          >
+            Voltar ao Início do Quiz
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto">
